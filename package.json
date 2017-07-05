@@ -1,0 +1,16 @@
+{
+  "name": "kdc-bigquery-connector",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google-cloud/bigquery": "^0.9.5",
+    "bluebird": "^3.5.0",
+    "eslint": "^4.0.0"
+  }
+}
