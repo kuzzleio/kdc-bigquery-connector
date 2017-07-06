@@ -10,7 +10,9 @@
   "license": "ISC",
   "dependencies": {
     "@google-cloud/bigquery": "^0.9.5",
-    "bluebird": "^3.5.0",
+    "bluebird": "^3.5.0"
+  },
+  "devDependencies": {
     "eslint": "^4.0.0"
   }
 }
