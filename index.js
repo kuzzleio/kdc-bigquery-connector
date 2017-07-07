@@ -2,12 +2,16 @@ const
   BigQuery = require('@google-cloud/bigquery'),
   Bluebird = require('bluebird');
 
+/**
+ * @class BigQueryConnector
+ */
 class BigQueryConnector {
   constructor () {
+    this.hooks = {};
   }
 
   /**
-   * @param  {object} customConfig
+   * @param {object} customConfig
    * @param {KuzzlePluginContext} context
    */
   init (customConfig, context) {
@@ -41,4 +45,6 @@ test.init(require('./config.js'), {
   }
 });
 
-test.bigQuery.getDatasets({}).then(datasets => console.log(JSON.stringify(datasets, null, 2)));
+const probesDS = test.bigQuery.dataset('kuzzle_probes');
+
+probesDS.getTables().then(tables => console.log(JSON.stringify(tables, null, 2)));
