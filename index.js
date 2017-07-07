@@ -47,11 +47,41 @@ class BigQueryConnector {
       throw new this.context.errors.PreconditionError('kdc-bigquery-connector: The probes configuration is mandatory');
     }
     this.probes = customConfig.probes;
-    this.probes.forEach(this.createTableIfNotExists);
+
+    const promises = [];
+    Object.keys(this.probes).forEach(probeName => {
+      promises.push(this.createTableIfNotExists(this.probes[probeName], probeName));
+    });
+
+    return Promise.all(promises);
   }
 
-  createTableIfNotExists (probe) {
-    return probe;
+  createTableIfNotExists (probe, probeName) {
+    const tableName = getTableForProbe(this.probes, probeName);
+    return this.bigQuery
+      .dataset(this.dataSet)
+      .table(tableName)
+      .exists()
+      .then(exists => {
+        /* eslint eqeqeq: 0 */
+        if (exists == 'false') {
+          return Promise.reject();
+        }
+        console.log(`Table ${tableName} exists. Done.`);
+      })
+      .catch(() => {
+        console.log(`Table ${tableName} does not exist. Creating.`);
+        return this.bigQuery
+          .dataset(this.dataSet)
+          .createTable(
+            tableName,
+            { schema: probe.schema }
+          );
+      })
+      .catch(err => {
+        console.error(`Something went wrong while creating table for probe ${probeName}: ${err.message}`);
+        return Promise.reject();
+      });
   }
 
   /**
