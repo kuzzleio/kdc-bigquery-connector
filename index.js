@@ -112,11 +112,12 @@ class BigQueryConnector {
       return Promise.reject();
     }
 
-    const data = extractMeasureData(measure.data);
-
     // extract the data from the measure and insert it in the table
     // whose name corresponds with the name of the probe.
+    const data = extractMeasureData(measure.data);
     debug(`Received measure from probe ${measure.probeName}`);
+    debug(JSON.stringify(data));
+
     return this.bigQuery
       .dataset(this.dataSet)
       .table(tableName)
@@ -211,6 +212,14 @@ function buildMonitorSchema (hooks) {
   return schema;
 }
 
+/**
+ * Extracts the data from the measure (watchers and samplers pack the data in
+ * a `content` attribute) and normalizes the attribute names to make them
+ * BigQuery table-compliant.
+ *
+ * @param  {Object} data
+ * @return {Object}
+ */
 function extractMeasureData (data) {
   if (data.content) {
     return data.content.map(datum => {
