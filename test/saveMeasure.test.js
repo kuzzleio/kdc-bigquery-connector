@@ -6,7 +6,8 @@ test
   .init(require('../config.js'), {
     errors: {
       PreconditionError: Error
-    }
+    },
+    log: console
   })
   .then(() => {
     test

@@ -1,5 +1,6 @@
 const
   BigQuery = require('@google-cloud/bigquery'),
+  debug = require('debug')('kuzzle:kdc:bigQuery'),
   Bluebird = require('bluebird');
 
 /**
@@ -79,10 +80,10 @@ class BigQueryConnector {
         if (exists == 'false') {
           return Promise.reject();
         }
-        console.log(`Table ${tableName} exists. Done.`);
+        console.info(`Table ${tableName} exists. Done.`);
       })
       .catch(() => {
-        console.log(`Table ${tableName} does not exist. Creating.`);
+        console.info(`Table ${tableName} does not exist. Creating.`);
         return this.bigQuery
           .dataset(this.dataSet)
           .createTable(
@@ -111,14 +112,23 @@ class BigQueryConnector {
       return Promise.reject();
     }
 
-    const data = normalizeMeasureData(measure.data);
+    const data = extractMeasureData(measure.data);
 
     // extract the data from the measure and insert it in the table
     // whose name corresponds with the name of the probe.
+    debug(`Received measure from probe ${measure.probeName}`);
     return this.bigQuery
       .dataset(this.dataSet)
       .table(tableName)
-      .insert(data);
+      .insert(data)
+      .then(() => {
+        this.context.log.info(`Saved measure from ${measure.probeName}`);
+      })
+      .catch(e => {
+        this.context.log.error(`Something weird happened while saving the measure: ${e.message}`);
+        debug(`Table: ${tableName}`);
+        debug(data);
+      });
   }
 }
 
@@ -152,10 +162,10 @@ function getSchemaForProbe (probe) {
   }
 
   if (probe.type === 'monitor') {
-    if (!probe.events || !Array.isArray(probe.events)) {
-      throw new Error('Monitor probes must have an "events" field, of type Array.');
+    if (!probe.hooks || !Array.isArray(probe.hooks)) {
+      throw new Error('Monitor probes must have an "hooks" field, of type Array.');
     }
-    return buildCounterSchema(probe.events);
+    return buildMonitorSchema(probe.hooks);
   }
 
   if (probe.type === 'counter') {
@@ -179,15 +189,15 @@ function getSchemaForProbe (probe) {
 }
 
 /**
- * Builds a table schema based on the list of events a counter probe listens to.
+ * Builds a table schema based on the list of events a monitor probe listens to.
  *
- * @param  {Array} events The list of events counted by the counter.
+ * @param  {Array} events The list of events counted by the monitor.
  * @return {Array}        The schema.
  */
-function buildCounterSchema (events) {
-  const schema = events.map(eventName => {
+function buildMonitorSchema (hooks) {
+  const schema = hooks.map(hookName => {
     return {
-      name: normalizeFieldName(eventName),
+      name: normalizeFieldName(hookName),
       type: 'INTEGER',
       mode: 'NULLABLE'
     };
@@ -199,6 +209,16 @@ function buildCounterSchema (events) {
   });
 
   return schema;
+}
+
+function extractMeasureData (data) {
+  if (data.content) {
+    return data.content.map(datum => {
+      return normalizeMeasureData(datum);
+    });
+  }
+
+  return normalizeMeasureData(data);
 }
 
 /**
