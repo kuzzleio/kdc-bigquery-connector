@@ -12,6 +12,8 @@ The tables corresponding to the measures in BigQuery are automatically created i
 
 This plugin will not initialize unless a valid configuration is provided. Please refer to the [Kuzzle Plugins Reference](http://docs.kuzzle.io/plugins-reference/managing-plugins/#configuring-plugins) to learn how to configure a plugin.
 
+This plugin relies on the [Enterprise Probe Plugin](https://github.com/kuzzleio/kuzzle-enterprise-probe) and relies on the `plugin-kuzzle-enterprise-probe:saveMeasure` hook to work. The Enterprise Probe Plugin must be installed and its name must not be modified in its `package.json`.
+
 ## Configuration
 
 Below is an example of configuration:
