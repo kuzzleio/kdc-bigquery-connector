@@ -71,8 +71,8 @@ class BigQueryConnector {
   /**
    * Creates a table for a given probe (and sets a schema) if it does not exist.
    *
-   * @param  {object} probe The probe object (specified in the configuration).
-   * @param  {string} probeName The probe Name
+   * @param {object} probe The probe object (specified in the configuration).
+   * @param {string} probeName The probe Name
    * @return {Promise}
    */
   createTableIfNotExists (probe, probeName) {
@@ -110,7 +110,7 @@ class BigQueryConnector {
   /**
    * Saves the measure to BigQuery.
    *
-   * @param  {object} measure
+   * @param {object} measure
    * @return {void}
    */
   saveMeasure (measure) {
@@ -144,8 +144,8 @@ class BigQueryConnector {
 }
 
 /**
- * @param  {object<string, ProbeConfiguration>} probes
- * @param  {string} probeName
+ * @param {object<string, ProbeConfiguration>} probes
+ * @param {string} probeName
  * @return {string|null} The name of the table corresponding to the probe. Null if the probe is not being tracked.
  */
 function getTableForProbe (probes, probeName) {
@@ -163,7 +163,7 @@ function getTableForProbe (probes, probeName) {
  * Infers a table schema for a given probe, based on its type (or its explicitly
  * specified schema).
  *
- * @param  {object} probe The probe object (specified in the configuration).
+ * @param {object} probe The probe object (specified in the configuration).
  * @return {BigQuerySchema} The generated schema.
  */
 function getSchemaForProbe (probe) {
@@ -201,7 +201,7 @@ function getSchemaForProbe (probe) {
 /**
  * Builds a table schema based on the list of events a monitor probe listens to.
  *
- * @param  {string[]} hooks The list of events counted by the monitor.
+ * @param {string[]} hooks The list of events counted by the monitor.
  * @return {BigQuerySchema} The schema.
  */
 function buildMonitorSchema (hooks) {
@@ -228,7 +228,7 @@ function buildMonitorSchema (hooks) {
  * a `content` attribute) and normalizes the attribute names to make them
  * BigQuery table-compliant.
  *
- * @param  {object} data
+ * @param {object} data
  * @return {object}
  */
 function extractMeasureData (data) {
@@ -244,7 +244,7 @@ function extractMeasureData (data) {
 /**
  * Normalizes all the attributes names of a measure's data.
  *
- * @param  {object} data The measure data.
+ * @param {object} data The measure data.
  * @return {object} The normalized version.
  */
 function normalizeMeasureData (data) {
@@ -260,7 +260,7 @@ function normalizeMeasureData (data) {
 /**
  * Normalizes a field name to be BigQuery-compliant.
  *
- * @param  {string} fieldName
+ * @param {string} fieldName
  * @return {string}
  */
 function normalizeFieldName (fieldName) {
