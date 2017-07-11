@@ -4,22 +4,28 @@ const
   Bluebird = require('bluebird');
 
 /**
+ * @typedef {{name: string, type: string, mode: string}} BigQueryField
+ * @typedef {{fields: BigQueryField[]}} BigQuerySchema
+ * @typedef {{tableName: string}|object} ProbeConfiguration
+ */
+
+/**
  * Allows to forward measures coming from [KDC Probes](https://github.com/kuzzleio/kuzzle-enterprise-probe)
  * to Google BigQuery.
  *
  * @class BigQueryConnector
+ * @property {KuzzlePluginContext} context
+ * @property {object<string,ProbeConfiguration>} probes
  */
 class BigQueryConnector {
   constructor () {
-    this.hooks = {
-      'plugin-kuzzle-enterprise-probe:saveMeasure': 'saveMeasure'
-    };
+    this.hooks = {};
     this.probes = {};
     this.dataSet = null;
   }
 
   /**
-   * @param {Object} customConfig
+   * @param {object} customConfig
    * @param {KuzzlePluginContext} context
    */
   init (customConfig, context) {
@@ -65,12 +71,17 @@ class BigQueryConnector {
   /**
    * Creates a table for a given probe (and sets a schema) if it does not exist.
    *
-   * @param  {Object} probe     The probe object (specified in the configuration).
-   * @param  {String} probeName The probe Name
+   * @param  {object} probe The probe object (specified in the configuration).
+   * @param  {string} probeName The probe Name
    * @return {Promise}
    */
   createTableIfNotExists (probe, probeName) {
     const tableName = getTableForProbe(this.probes, probeName);
+
+    if (!tableName) {
+      return Bluebird.reject(`probeName or tableName property is mandatory.`);
+    }
+
     return this.bigQuery
       .dataset(this.dataSet)
       .table(tableName)
@@ -99,8 +110,8 @@ class BigQueryConnector {
   /**
    * Saves the measure to BigQuery.
    *
-   * @param  {Object} measure
-   * @return {Promise}
+   * @param  {object} measure
+   * @return {void}
    */
   saveMeasure (measure) {
     // check that the probe that generated the measure is being watched
@@ -108,7 +119,7 @@ class BigQueryConnector {
     const tableName = getTableForProbe(this.probes, measure.probeName);
 
     if (!tableName) {
-      return Promise.reject();
+      return;
     }
 
     // extract the data from the measure and insert it in the table
@@ -117,7 +128,7 @@ class BigQueryConnector {
     debug(`Received measure from probe ${measure.probeName}`);
     debug(JSON.stringify(data));
 
-    return this.bigQuery
+    this.bigQuery
       .dataset(this.dataSet)
       .table(tableName)
       .insert(data)
@@ -133,14 +144,13 @@ class BigQueryConnector {
 }
 
 /**
- * @param  {Object} probes
- * @param  {String} probeName
- * @return {String} The name of the table corresponding to the probe. Null if
- *                  the probe is not being tracked.
+ * @param  {object<string, ProbeConfiguration>} probes
+ * @param  {string} probeName
+ * @return {string|null} The name of the table corresponding to the probe. Null if the probe is not being tracked.
  */
 function getTableForProbe (probes, probeName) {
   if (!probes[probeName]) {
-    return;
+    return null;
   }
 
   if (!probes[probeName].tableName) {
@@ -153,8 +163,8 @@ function getTableForProbe (probes, probeName) {
  * Infers a table schema for a given probe, based on its type (or its explicitly
  * specified schema).
  *
- * @param  {Object} probe     The probe object (specified in the configuration).
- * @return {Array}            The generated schema.
+ * @param  {object} probe The probe object (specified in the configuration).
+ * @return {BigQuerySchema} The generated schema.
  */
 function getSchemaForProbe (probe) {
   if (probe.schema) {
@@ -191,8 +201,8 @@ function getSchemaForProbe (probe) {
 /**
  * Builds a table schema based on the list of events a monitor probe listens to.
  *
- * @param  {Array} events The list of events counted by the monitor.
- * @return {Array}        The schema.
+ * @param  {string[]} hooks The list of events counted by the monitor.
+ * @return {BigQuerySchema} The schema.
  */
 function buildMonitorSchema (hooks) {
   const schema = hooks.map(hookName => {
@@ -208,7 +218,9 @@ function buildMonitorSchema (hooks) {
     mode: 'REQUIRED'
   });
 
-  return schema;
+  return {
+    fields: schema
+  };
 }
 
 /**
@@ -216,8 +228,8 @@ function buildMonitorSchema (hooks) {
  * a `content` attribute) and normalizes the attribute names to make them
  * BigQuery table-compliant.
  *
- * @param  {Object} data
- * @return {Object}
+ * @param  {object} data
+ * @return {object}
  */
 function extractMeasureData (data) {
   if (data.content) {
@@ -232,8 +244,8 @@ function extractMeasureData (data) {
 /**
  * Normalizes all the attributes names of a measure's data.
  *
- * @param  {Object} data The measure data.
- * @return {Object}      The normalized version.
+ * @param  {object} data The measure data.
+ * @return {object} The normalized version.
  */
 function normalizeMeasureData (data) {
   let normalizedData = {};
@@ -248,8 +260,8 @@ function normalizeMeasureData (data) {
 /**
  * Normalizes a field name to be BigQuery-compliant.
  *
- * @param  {String} fieldName
- * @return {String}
+ * @param  {string} fieldName
+ * @return {string}
  */
 function normalizeFieldName (fieldName) {
   return fieldName.replace(/[^A-Z^a-z^0-9^_]/, '_');
