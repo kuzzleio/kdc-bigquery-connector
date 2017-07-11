@@ -76,8 +76,7 @@ class BigQueryConnector {
       .table(tableName)
       .exists()
       .then(exists => {
-        /* eslint eqeqeq: 0 */
-        if (exists == 'false') {
+        if (!exists[0]) {
           return Promise.reject();
         }
         console.info(`Table ${tableName} exists. Done.`);
