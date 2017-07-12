@@ -1,7 +1,8 @@
 const
   BigQuery = require('@google-cloud/bigquery'),
   debug = require('debug')('kuzzle:kdc:bigQuery'),
-  Bluebird = require('bluebird');
+  Bluebird = require('bluebird'),
+  Promise = Bluebird;
 
 /**
  * @typedef {{name: string, type: string, mode: string}} BigQueryField
@@ -79,7 +80,7 @@ class BigQueryConnector {
     const tableName = getTableForProbe(this.probes, probeName);
 
     if (!tableName) {
-      return Bluebird.reject(`probeName or tableName property is mandatory.`);
+      return Promise.resolve();
     }
 
     return this.bigQuery
@@ -94,11 +95,12 @@ class BigQueryConnector {
       })
       .catch(() => {
         console.info(`Table ${tableName} does not exist. Creating.`);
+        const schema = getSchemaForProbe(probe);
         return this.bigQuery
           .dataset(this.dataSet)
           .createTable(
             tableName,
-            { schema: getSchemaForProbe(probe) }
+            { schema }
           );
       })
       .catch(err => {
@@ -169,6 +171,10 @@ function getTableForProbe (probes, probeName) {
 function getSchemaForProbe (probe) {
   if (probe.schema) {
     return probe.schema;
+  }
+
+  if (!probe.type) {
+    throw new Error('Type field is mandatory in probes that do not provide schema');
   }
 
   if (probe.type === 'monitor') {
@@ -264,7 +270,7 @@ function normalizeMeasureData (data) {
  * @return {string}
  */
 function normalizeFieldName (fieldName) {
-  return fieldName.replace(/[^A-Z^a-z^0-9^_]/, '_');
+  return fieldName.replace(/[^A-Z^a-z^0-9^_]/g, '_');
 }
 
 module.exports = BigQueryConnector;

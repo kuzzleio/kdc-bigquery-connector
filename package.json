@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "unit-testing": "istanbul cover _mocha",
+    "test": "npm run --silent lint && npm run unit-testing --coverage",
+    "lint": "eslint --max-warnings=0 ./lib ./test"
   },
   "author": "Kuzzle Team",
   "license": "ISC",
@@ -14,6 +16,12 @@
   },
   "devDependencies": {
     "debug": "^2.6.8",
-    "eslint": "^4.0.0"
+    "eslint": "^4.0.0",
+    "istanbul": "^0.4.5",
+    "mocha": "^3.4.2",
+    "rewire": "^2.5.2",
+    "should": "^11.2.1",
+    "sinon": "^2.3.6",
+    "sinon-as-promised": "^4.0.3"
   }
 }
