@@ -33,7 +33,7 @@ class BigQueryConnector {
     this.context = context;
 
     const probePluginName = customConfig.probePluginName || 'kuzzle-enterprise-probe';
-    this.hooks[`plugin-${probePluginName}:saveMeasure`] = 'saveMeasure';
+    this.hooks[`plugin-${probePluginName}:receivedMeasure`] = 'saveMeasure';
 
     if (!customConfig.projectId) {
       throw new this.context.errors.PreconditionError('kdc-bigquery-connector: The projectId configuration is mandatory');
