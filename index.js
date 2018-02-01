@@ -19,7 +19,7 @@ const
  * @property {object<string,ProbeConfiguration>} probes
  */
 class BigQueryConnector {
-  constructor () {
+  constructor() {
     this.hooks = {};
     this.probes = {};
     this.dataSet = null;
@@ -29,7 +29,7 @@ class BigQueryConnector {
    * @param {object} customConfig
    * @param {KuzzlePluginContext} context
    */
-  init (customConfig, context) {
+  init(customConfig, context) {
     this.context = context;
 
     const probePluginName = customConfig.probePluginName || 'kuzzle-enterprise-probe';
@@ -76,7 +76,7 @@ class BigQueryConnector {
    * @param {string} probeName The probe Name
    * @return {Promise}
    */
-  createTableIfNotExists (probe, probeName) {
+  createTableIfNotExists(probe, probeName) {
     const tableName = getTableForProbe(this.probes, probeName);
 
     if (!tableName) {
@@ -99,8 +99,8 @@ class BigQueryConnector {
         return this.bigQuery
           .dataset(this.dataSet)
           .createTable(
-            tableName,
-            { schema }
+          tableName,
+          { schema }
           );
       })
       .catch(err => {
@@ -115,7 +115,7 @@ class BigQueryConnector {
    * @param {object} measure
    * @return {void}
    */
-  saveMeasure (measure) {
+  saveMeasure(measure) {
     // check that the probe that generated the measure is being watched
     // by this plugin.
     const tableName = getTableForProbe(this.probes, measure.probeName);
@@ -125,8 +125,20 @@ class BigQueryConnector {
     }
 
     // extract the data from the measure and insert it in the table
+    // (add the timestamp if needed)
     // whose name corresponds with the name of the probe.
     const data = extractMeasureData(measure.data);
+    this.context.log.info(`-----------------------------------------`);
+    this.context.log.info(data);
+    this.context.log.info(`-----------------------------------------`);
+    if (
+      this.probes[measure.probeName] &&
+      typeof this.probes[measure.probeName].timestamp != 'undefined' && 
+      this.probes[measure.probeName].timestamp
+    ) {
+      data[0].timestamp = Math.round((new Date()).getTime() / 1000);
+    }
+    
     debug(`Received measure from probe ${measure.probeName}`);
     debug(JSON.stringify(data));
 
@@ -150,7 +162,7 @@ class BigQueryConnector {
  * @param {string} probeName
  * @return {string|null} The name of the table corresponding to the probe. Null if the probe is not being tracked.
  */
-function getTableForProbe (probes, probeName) {
+function getTableForProbe(probes, probeName) {
   if (!probes[probeName]) {
     return null;
   }
@@ -168,8 +180,17 @@ function getTableForProbe (probes, probeName) {
  * @param {object} probe The probe object (specified in the configuration).
  * @return {BigQuerySchema} The generated schema.
  */
-function getSchemaForProbe (probe) {
+function getSchemaForProbe(probe) {
   if (probe.schema) {
+    if (probe.type === "watcher" && probe.timestamp) {
+      probe.schema.fields.push(
+        {
+          "name": "timestamp",
+          "type": "TIMESTAMP",
+          "mode": "REQUIRED"
+        }
+      );
+    }
     return probe.schema;
   }
 
@@ -210,7 +231,7 @@ function getSchemaForProbe (probe) {
  * @param {string[]} hooks The list of events counted by the monitor.
  * @return {BigQuerySchema} The schema.
  */
-function buildMonitorSchema (hooks) {
+function buildMonitorSchema(hooks) {
   const schema = hooks.map(hookName => {
     return {
       name: normalizeFieldName(hookName),
@@ -237,9 +258,11 @@ function buildMonitorSchema (hooks) {
  * @param {object} data
  * @return {object}
  */
-function extractMeasureData (data) {
+function extractMeasureData(data) {
   if (data.content) {
-    return data.content.map(datum => {
+    let extractedData = [flattenObject(data.content)];
+    
+    return extractedData.map(datum => {
       return normalizeMeasureData(datum);
     });
   }
@@ -253,7 +276,7 @@ function extractMeasureData (data) {
  * @param {object} data The measure data.
  * @return {object} The normalized version.
  */
-function normalizeMeasureData (data) {
+function normalizeMeasureData(data) {
   let normalizedData = {};
 
   Object.keys(data).forEach(key => {
@@ -269,8 +292,31 @@ function normalizeMeasureData (data) {
  * @param {string} fieldName
  * @return {string}
  */
-function normalizeFieldName (fieldName) {
+function normalizeFieldName(fieldName) {
   return fieldName.replace(/[^A-Z^a-z^0-9^_]/g, '_');
 }
+
+/**
+ * Flatten nested object
+ *
+ * @param {Object} object
+ * @return {Array}
+ */
+function flattenObject(object) {
+  var toReturn = {};
+  for (var i in object) {
+    if (!object.hasOwnProperty(i)) continue;
+    if ((typeof object[i]) == 'object' && object[i] !== null) {
+      var flatObject = flattenObject(object[i]);
+      for (var x in flatObject) {
+        if (!flatObject.hasOwnProperty(x)) continue;
+        toReturn[x] = flatObject[x];
+      }
+    } else {
+      toReturn[i] = object[i];
+    }
+  }
+  return toReturn;
+};
 
 module.exports = BigQueryConnector;

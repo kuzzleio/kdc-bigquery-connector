@@ -319,7 +319,7 @@ describe('BigQueryConnector', () => {
       const normalizeMeasureDataStub = sinon.stub();
 
       BigQueryConnector.__with__({
-        normalizeMeasureData: normalizeMeasureDataStub
+        normalizeMeasureData: normalizeMeasureDataStub,
       })(() => {
         extractMeasureData({
           content: [ 'firstMeasure', 'secondMeasure' ]
@@ -362,6 +362,24 @@ describe('BigQueryConnector', () => {
         should(normalizeFieldNameStub.calledWith('secondField')).eql(true);
       });
     });
+
+    const flattenObject = BigQueryConnector.__get__('flattenObject');
+
+    it('should flatten nested object', () => {
+      const obj = {
+        'parent': {
+          'child1': 'value1',
+          'child2': 'value2'
+        }
+      };
+      should(flattenObject(obj)).eql(
+        {
+          'child1': 'value1',
+          'child2': 'value2'
+        }
+      );
+    });
+
   });
 
   describe('#normalizeFieldName', () => {
