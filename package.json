@@ -9,7 +9,7 @@
     "lint": "eslint --max-warnings=0 ./lib ./test"
   },
   "author": "Kuzzle Team",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "@google-cloud/bigquery": "^0.9.5",
     "bluebird": "^3.5.0"
